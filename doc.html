@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Case File: CLASSIFIED</title>
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--desk:#1d1a17;--manila:#e6d5a8;--paper:#f6eedb;--ink:#2a2622;--red:#b3261e;--pen:#1f4fa8;--hl:#ffe36e}
+*{box-sizing:border-box;margin:0}
+html{scroll-behavior:smooth}
+body{background:var(--desk);color:var(--ink);font-family:'Special Elite','Courier New',monospace;line-height:1.6;font-size:17px}
+.hand{font-family:'Caveat','Comic Sans MS',cursive;color:var(--pen);font-weight:700;font-size:1.35rem;line-height:1.25}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--hl);outline-offset:3px}
+
+/* gate */
+#gate{position:fixed;inset:0;background:#0d0c0b;display:grid;place-items:center;padding:24px;z-index:10;text-align:center;color:#e8e2d0}
+#gate.gone{display:none}
+#gate h1{font-size:clamp(1.6rem,6vw,2.6rem);color:var(--red);letter-spacing:.06em;margin-bottom:6px}
+#gate p{max-width:30em;margin:8px auto}
+#gate form{margin-top:18px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+#gate input{font:inherit;padding:10px 14px;border-radius:6px;border:2px solid #6b6252;background:#1a1815;color:#e8e2d0;width:min(78vw,260px)}
+#gate button{padding:10px 20px;border-radius:6px;border:0;background:var(--red);color:#fff}
+#msg{min-height:3.2em;margin-top:14px;color:var(--hl)}
+#hint{background:none;border:0;color:#9b917c;text-decoration:underline;margin-top:6px}
+#hint[hidden]{display:none}
+.shake{animation:shake .4s}
+@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+
+/* file */
+main{max-width:760px;margin:0 auto;padding:40px 16px 80px;display:none}
+main.open{display:block}
+.folder{background:var(--manila);border-radius:6px 6px 0 0;padding:14px 22px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;width:min(100%,520px);box-shadow:0 -2px 0 rgba(0,0,0,.08) inset}
+.sheet{background:var(--paper);padding:clamp(20px,5vw,44px);box-shadow:0 12px 40px rgba(0,0,0,.55);position:relative;margin-bottom:34px;border-radius:0 6px 6px 6px}
+.sheet.s2{margin-bottom:34px;border-radius:6px}
+.stamp{position:absolute;top:24px;right:18px;border:4px solid var(--red);color:var(--red);padding:2px 14px;font-size:1.5rem;letter-spacing:.12em;transform:rotate(-11deg);opacity:0;pointer-events:none}
+main.open .stamp{animation:thud .5s .5s cubic-bezier(.2,1.6,.4,1) forwards}
+@keyframes thud{from{opacity:0;transform:rotate(-11deg) scale(3)}to{opacity:.85;transform:rotate(-11deg) scale(1)}}
+h2{font-size:1.35rem;margin-bottom:12px;border-bottom:2px solid var(--ink);padding-bottom:4px}
+.title{font-size:clamp(1.5rem,5vw,2.2rem);line-height:1.2;margin:6px 0 18px;max-width:78%}
+dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 16px}
+dt{font-weight:bold}
+.red{background:var(--ink);color:var(--ink);border-radius:2px;padding:0 6px;cursor:pointer;border:0;font:inherit;text-align:left;transition:background .3s,color .3s}
+.red.on{background:var(--hl);color:var(--ink)}
+.note{display:block;margin-top:2px}
+.log{list-style:none;padding:0}
+.log li{padding:10px 0;border-bottom:1px dashed #b9ad8f}
+.log time{font-weight:bold;margin-right:8px}
+.vitals canvas{width:100%;height:110px;background:#0e1a14;border-radius:4px;display:block}
+.bar{margin:12px 0 4px}
+.bar span{display:flex;justify-content:space-between;font-size:.95rem}
+.track{height:14px;background:#d8cdb0;border-radius:4px;overflow:hidden}
+.fill{height:100%;width:0;background:var(--red);transition:width 1.6s cubic-bezier(.2,.8,.2,1)}
+.fill.g{background:#2f7d4f}
+.rx label{display:flex;gap:12px;align-items:flex-start;padding:9px 0;border-bottom:1px dashed #b9ad8f;cursor:pointer}
+.rx input{width:22px;height:22px;margin-top:3px;accent-color:var(--red);flex:none}
+.rx input:checked+span{text-decoration:line-through;text-decoration-color:var(--pen);text-decoration-thickness:2px}
+#cleared{display:none;margin-top:14px}
+#cleared.show{display:block}
+.glass{width:100%;padding:18px;border:3px solid var(--red);background:#fff;color:var(--red);font-size:1.15rem;border-radius:6px;letter-spacing:.04em}
+.glass:hover{background:#ffeceb}
+#glassMsg{min-height:4em;margin-top:14px}
+.letter p{margin:0 0 14px}
+.letter.locked p{color:transparent;background:var(--ink);border-radius:3px;user-select:none}
+.declass{margin-top:6px;padding:12px 22px;background:var(--red);color:#fff;border:0;border-radius:6px}
+.letter:not(.locked)+.declass{display:none}
+footer{text-align:center;color:#8d8472;font-size:.9rem;margin-top:10px}
+@media (max-width:520px){dl{grid-template-columns:1fr}.title{max-width:100%;margin-top:42px}.stamp{top:10px;right:10px;font-size:1.1rem}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}main.open .stamp{opacity:.85}}
+</style>
+</head>
+<body>
+
+<!-- ======= GATE ======= -->
+<section id="gate" aria-labelledby="gt">
+  <div>
+    <h1 id="gt">ACCESS RESTRICTED</h1>
+    <p>This file contains sensitive information about one (1) extremely tired future doctor.</p>
+    <p id="q"></p>
+    <form id="form" autocomplete="off">
+      <input id="ans" aria-label="Codeword" placeholder="codeword" required>
+      <button>Open file</button>
+    </form>
+    <p id="msg" role="status"></p>
+    <button id="hint" hidden type="button">Request a hint</button>
+  </div>
+</section>
+
+<!-- ======= FILE ======= -->
+<main id="file">
+  <div class="folder"><b id="caseNo"></b><span>STATUS: <u>still alive (barely)</u></span></div>
+  <section class="sheet">
+    <div class="stamp" aria-hidden="true">CONFIDENTIAL</div>
+    <p>OFFICIAL DOCUMENT — DO NOT READ WITHOUT SNACKS</p>
+    <h1 class="title" id="subject"></h1>
+    <p class="hand" id="margin1"></p>
+    <h2 style="margin-top:22px">Subject details <small>(tap the black bars)</small></h2>
+    <dl id="details"></dl>
+  </section>
+
+  <section class="sheet">
+    <h2>Surveillance report</h2>
+    <p>Our agents have been observing the subject. Findings:</p>
+    <ul class="log" id="log"></ul>
+  </section>
+
+  <section class="sheet vitals">
+    <h2>Vital signs</h2>
+    <canvas id="ecg" width="700" height="110" aria-label="Animated heartbeat line"></canvas>
+    <div id="bars"></div>
+    <p class="hand" id="margin2" style="margin-top:14px"></p>
+  </section>
+
+  <section class="sheet rx">
+    <h2>Prescription ℞</h2>
+    <p>Tick each one. The doctor (you) must follow her own orders.</p>
+    <div id="rxList"></div>
+    <p id="cleared" class="hand"></p>
+  </section>
+
+  <section class="sheet">
+    <h2>Emergency protocol</h2>
+    <button class="glass" id="glass">🔨 BREAK GLASS IN CASE OF EXAM STRESS</button>
+    <p id="glassMsg" class="hand" role="status"></p>
+  </section>
+
+  <section class="sheet">
+    <h2>Classified letter</h2>
+    <div class="letter locked" id="letter"></div>
+    <button class="declass" id="declass">DECLASSIFY</button>
+  </section>
+
+  <footer>This file will not self-destruct. It will stay here for as long as the internet does.</footer>
+</main>
+
+<script>
+/* ==========================================================
+   EDIT EVERYTHING IN THIS BLOCK — this is the whole site
+   ========================================================== */
+const C = {
+  name: "Dr. [Her Name]",
+  from: "[Your Name]",
+  caseNo: "CASE No. MBBS-0001",
+
+  gate: {
+    enabled: true,
+    question: "Enter the codeword to open the file.",
+    answer: "stethoscope",                      // lowercase
+    hint: "It hangs around every doctor's neck.",
+    wrong: [
+      "Incorrect. We are watching you.",
+      "Wrong. Are you a cadaver? Cadavers don't type.",
+      "Still wrong. Suspicious behaviour has been logged.",
+      "Nope. Did you study for this one? 😏"
+    ]
+  },
+
+  margin1: "(nobody else is allowed to see this, I checked) ✓",
+  margin2: "…but honestly? Heart rate is fine. You're doing great.",
+
+  details: [
+    ["Name", "[Her Name]"],
+    ["Occupation", "Future doctor (pending sleep)"],
+    ["Known weaknesses", "chai, deadlines, “I'll start studying tomorrow”", true],
+    ["Attendance", "75% required. 74.9% feared."],
+    ["Biggest secret", "Actually enjoys anatomy", true],
+    ["Dangerous when", "Hungry, or after an internal exam", true],
+    ["Best quality", "Cares about everyone, even when exhausted", true]
+  ],
+
+  log: [
+    ["02:14", "Subject still awake. Reading about the gallbladder. Why.", "(go to sleep. the gallbladder will wait)"],
+    ["07:45", "Subject running to class with one shoe of attention.", ""],
+    ["13:30", "Subject said “I'll eat after this ward round.” It was 3:40 PM.", "(EAT. I'm serious)"],
+    ["22:10", "Subject promised “early sleep today.” Agents laughed.", ""],
+    ["23:59", "Subject sent a motivational quote to herself. Quote not read.", "(I read it. It was good)"]
+  ],
+
+  bars: [
+    ["Stress levels", 92, ""],
+    ["Caffeine in blood", 97, ""],
+    ["Sleep", 6, ""],
+    ["Brain full of drug names", 88, ""],
+    ["Resilience", 100, "g"],
+    ["Future-doctor energy", 100, "g"]
+  ],
+
+  rx: [
+    "Drink a full glass of water. Right now.",
+    "Eat one actual meal (biscuits don't count)",
+    "Sleep 7 hours. At least once this week.",
+    "Take a walk. 10 minutes. The books will survive.",
+    "Text your friend and complain about everything",
+    "Believe that you're going to be a brilliant doctor"
+  ],
+  cleared: "PATIENT CLEARED ✓ Prescription followed. I'm proud of you.",
+
+  glass: [
+    "Breathe. In… out. You've survived every bad day so far.",
+    "You didn't come this far to only come this far.",
+    "Nobody finishes the whole syllabus. Doctors are made of revision and chai.",
+    "It's one exam. You are a whole person.",
+    "Reminder: patients will be lucky to have you.",
+    "Take 5 minutes. Then go crush it. I'll wait here. 💛"
+  ],
+
+  letter: [
+    "Dear [Her Name],",
+    "I built this whole ridiculous website because I wanted you to smile in the middle of a very hard degree.",
+    "I see how much you work. I see the tired days and the long hours, and I also see how you still care about people through all of it.",
+    "[Write your own personal paragraph here: a memory, an inside joke, something only you two know.]",
+    "Whenever it gets heavy, come back to this page. And call me. Seriously.",
+    "— [Your Name]"
+  ]
+};
+/* ========================================================== */
+
+const $ = s => document.querySelector(s);
+
+/* gate */
+let tries = 0;
+$('#q').textContent = C.gate.question;
+function openFile(){
+  $('#gate').classList.add('gone');
+  $('#file').classList.add('open');
+  initBars();
+}
+if(!C.gate.enabled){ openFile(); }
+$('#form').addEventListener('submit', e=>{
+  e.preventDefault();
+  if($('#ans').value.trim().toLowerCase() === C.gate.answer.toLowerCase()){ openFile(); return; }
+  $('#msg').textContent = C.gate.wrong[tries % C.gate.wrong.length];
+  $('#form').classList.remove('shake'); void $('#form').offsetWidth; $('#form').classList.add('shake');
+  if(++tries >= 2) $('#hint').hidden = false;
+});
+$('#hint').addEventListener('click', ()=>{ $('#msg').textContent = 'HINT: ' + C.gate.hint; });
+
+/* fill in file */
+$('#caseNo').textContent = C.caseNo;
+$('#subject').textContent = 'SUBJECT: ' + C.name;
+$('#margin1').textContent = C.margin1;
+$('#margin2').textContent = C.margin2;
+
+C.details.forEach(([k,v,red])=>{
+  const dt = document.createElement('dt'); dt.textContent = k + ':';
+  const dd = document.createElement('dd');
+  if(red){
+    const b = document.createElement('button'); b.className='red'; b.textContent=v; b.type='button';
+    b.setAttribute('aria-label','Redacted. Tap to reveal.');
+    b.onclick = ()=>{ b.classList.toggle('on'); b.removeAttribute('aria-label'); };
+    dd.appendChild(b);
+  } else dd.textContent = v;
+  $('#details').append(dt, dd);
+});
+
+C.log.forEach(([t,txt,note])=>{
+  const li = document.createElement('li');
+  li.innerHTML = '<time></time><span></span><span class="hand note"></span>';
+  li.querySelector('time').textContent = t;
+  li.children[1].textContent = txt;
+  li.children[2].textContent = note;
+  $('#log').appendChild(li);
+});
+
+C.bars.forEach(([label,val,cls])=>{
+  const d = document.createElement('div'); d.className='bar';
+  d.innerHTML = '<span><b></b><i></i></span><div class="track"><div class="fill"></div></div>';
+  d.querySelector('b').textContent = label;
+  d.querySelector('i').textContent = val + '%';
+  d.querySelector('.fill').dataset.v = val;
+  if(cls) d.querySelector('.fill').classList.add(cls);
+  $('#bars').appendChild(d);
+});
+function initBars(){
+  const io = new IntersectionObserver(es=>es.forEach(e=>{
+    if(e.isIntersecting){ e.target.querySelectorAll('.fill').forEach(f=>f.style.width=f.dataset.v+'%'); io.unobserve(e.target); }
+  }),{threshold:.3});
+  io.observe($('#bars'));
+}
+
+/* prescription */
+C.rx.forEach((t,i)=>{
+  const l = document.createElement('label');
+  l.innerHTML = '<input type="checkbox"><span></span>';
+  l.querySelector('span').textContent = t;
+  l.querySelector('input').addEventListener('change', ()=>{
+    const all = [...document.querySelectorAll('.rx input')].every(x=>x.checked);
+    $('#cleared').textContent = C.cleared;
+    $('#cleared').classList.toggle('show', all);
+  });
+  $('#rxList').appendChild(l);
+});
+
+/* break glass */
+let gi = -1;
+$('#glass').addEventListener('click', ()=>{
+  let n; do{ n = Math.floor(Math.random()*C.glass.length); }while(n===gi && C.glass.length>1);
+  gi = n; $('#glassMsg').textContent = C.glass[n];
+});
+
+/* letter */
+C.letter.forEach(t=>{ const p=document.createElement('p'); p.textContent=t; $('#letter').appendChild(p); });
+$('#declass').addEventListener('click', ()=>{ $('#letter').classList.remove('locked'); $('#letter').classList.add('hand'); });
+$('#letter').addEventListener('click', ()=>{ $('#letter').classList.remove('locked'); });
+
+/* heartbeat */
+(function(){
+  const cv = $('#ecg'), ctx = cv.getContext('2d'), W = cv.width, H = cv.height;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const g = (x,c,w,a)=>a*Math.exp(-Math.pow((x-c)/w,2));
+  function wave(p){ return g(p,.15,.04,.12)+g(p,.30,.012,-.12)+g(p,.33,.014,1)+g(p,.36,.012,-.25)+g(p,.58,.06,.22); }
+  let off = 0;
+  function draw(){
+    ctx.clearRect(0,0,W,H); ctx.strokeStyle='#5ff0a0'; ctx.lineWidth=2.4; ctx.beginPath();
+    for(let x=0;x<W;x++){
+      const p = (((x+off)/190)%1+1)%1, y = H*.7 - wave(p)*H*.6;
+      x?ctx.lineTo(x,y):ctx.moveTo(x,y);
+    }
+    ctx.stroke(); if(!reduce){ off+=2.2; requestAnimationFrame(draw); }
+  }
+  draw();
+})();
+</script>
+</body>
+</html>
